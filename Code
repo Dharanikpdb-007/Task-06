@@ -1,0 +1,105 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+public class ToDoApp extends JFrame {
+    private DefaultListModel<Task> taskListModel;
+    private JList<Task> taskList;
+    private JTextField taskInput;
+    private final Color BG = new Color(173, 216, 230);
+    private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    public ToDoApp() {
+        setTitle("To-Do List App");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(BG);
+        taskListModel = new DefaultListModel<>();
+        taskList = new JList<>(taskListModel);
+        taskList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        taskList.setBackground(BG);
+        taskList.setCellRenderer((list, task, index, isSelected, cellHasFocus) -> {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBackground(isSelected ? new Color(135, 206, 250) : BG);
+            JCheckBox checkBox = new JCheckBox(task.text);
+            checkBox.setSelected(task.completed);
+            checkBox.setOpaque(false);
+            JLabel dateLabel = new JLabel(task.dateTime);
+            dateLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+            panel.add(checkBox, BorderLayout.CENTER);
+            panel.add(dateLabel, BorderLayout.EAST);
+            return panel;
+        });
+        taskList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = taskList.locationToIndex(e.getPoint());
+                if (index != -1) {
+                    Task t = taskListModel.getElementAt(index);
+                    t.completed = !t.completed;
+                    taskList.repaint();
+                }
+            }
+        });
+        taskInput = new JTextField();
+        JButton addButton = new JButton("Add Task");
+        JButton deleteButton = new JButton("Delete Task");
+        JPanel top = new JPanel(new BorderLayout());
+        top.setBackground(BG);
+        top.add(taskInput, BorderLayout.CENTER);
+        top.add(addButton, BorderLayout.EAST);
+        JScrollPane scrollPane = new JScrollPane(taskList);
+        scrollPane.getViewport().setBackground(BG);
+        add(top, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(deleteButton, BorderLayout.SOUTH);
+        Runnable addTask = () -> {
+            String text = taskInput.getText().trim();
+            if (!text.isEmpty()) {
+                taskListModel.addElement(new Task(text, dtf.format(LocalDateTime.now())));
+                taskInput.setText("");
+            } else {
+                JOptionPane.showMessageDialog(ToDoApp.this, "Please enter a task.");
+            }
+        };
+        Runnable deleteTask = () -> {
+            int[] selected = taskList.getSelectedIndices();
+            if (selected.length > 0) {
+                for (int i = selected.length - 1; i >= 0; i--) {
+                    taskListModel.remove(selected[i]);
+                }
+            } else {
+                JOptionPane.showMessageDialog(ToDoApp.this, "Please select at least one task.");
+            }
+        };
+        addButton.addActionListener(e -> addTask.run());
+        deleteButton.addActionListener(e -> deleteTask.run());
+        taskInput.addActionListener(e -> addTask.run());
+        taskList.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+                    deleteTask.run();
+                }
+            }
+        });
+    }
+    static class Task {
+        String text;
+        String dateTime;
+        boolean completed;
+        Task(String text, String dateTime) {
+            this.text = text;
+            this.dateTime = dateTime;
+            this.completed = false;
+        }
+        @Override
+        public String toString() {
+            return text;
+        }
+    }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ToDoApp().setVisible(true));
+    }
+}
